@@ -1,0 +1,205 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SkillBurst Auth</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background: #f0f2f5;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 100vh;
+      margin: 0;
+      padding: 10px;
+    }
+    .auth-box {
+      background: #fff;
+      padding: 25px;
+      border-radius: 10px;
+      width: 100%;
+      max-width: 380px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+    }
+    h2 {
+      text-align: center;
+      margin-bottom: 20px;
+      font-size: 22px;
+    }
+    input, button {
+      width: 100%;
+      padding: 12px;
+      margin: 8px 0;
+      border-radius: 6px;
+      border: 1px solid #ccc;
+      font-size: 16px;
+    }
+    button {
+      background: #007bff;
+      color: white;
+      border: none;
+      cursor: pointer;
+    }
+    button:hover { background: #0056b3; }
+    .link {
+      text-align: center;
+      margin-top: 10px;
+      font-size: 14px;
+    }
+    .link a {
+      color: #007bff;
+      cursor: pointer;
+      text-decoration: underline;
+    }
+    .availability {
+      font-size: 13px;
+      margin-top: -5px;
+      margin-bottom: 5px;
+    }
+    .available { color: green; }
+    .taken { color: red; }
+  </style>
+</head>
+<body>
+  <div class="auth-box">
+    <h2 id="form-title">Login</h2>
+
+    <!-- Login Form -->
+    <div id="login-form">
+      <input type="text" id="login-email" placeholder="Email or Username" required>
+      <input type="password" id="login-password" placeholder="Password" required>
+      <button onclick="loginUser()">Login</button>
+      <div class="link">Not registered? <a onclick="showRegister()">Register</a></div>
+      <div class="link"><a onclick="showForgot()">Forgot Password?</a></div>
+    </div>
+
+    <!-- Registration Form -->
+    <div id="register-form" style="display:none;">
+      <input type="text" id="reg-surname" placeholder="Surname" required>
+      <input type="text" id="reg-name" placeholder="Name" required>
+      <input type="text" id="reg-username" placeholder="Username" required>
+      <input type="text" id="reg-phone" placeholder="Phone" required>
+      <input type="email" id="reg-email" placeholder="Email" required>
+      <input type="password" id="reg-password" placeholder="Password" required>
+      <button onclick="registerUser()">Register</button>
+      <div class="link">Already have an account? <a onclick="showLogin()">Login</a></div>
+    </div>
+
+    <!-- Forgot Password Form -->
+    <div id="forgot-form" style="display:none;">
+      <input type="email" id="forgot-email" placeholder="Enter your registered email">
+      <button onclick="forgotPassword()">Get Password</button>
+      <div class="link">Back to <a onclick="showLogin()">Login</a></div>
+    </div>
+  </div>
+
+<script>
+const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxrYlvvFL1iAD2_v6vjGQIwS4WUmPfyVGfxebxGrPsy6sWI2wygNOX79r_ySwuS/exec";
+
+// Switch forms
+function showRegister() {
+  document.getElementById("login-form").style.display="none";
+  document.getElementById("register-form").style.display="block";
+  document.getElementById("forgot-form").style.display="none";
+  document.getElementById("form-title").innerText="Register";
+}
+function showLogin() {
+  document.getElementById("login-form").style.display="block";
+  document.getElementById("register-form").style.display="none";
+  document.getElementById("forgot-form").style.display="none";
+  document.getElementById("form-title").innerText="Login";
+}
+function showForgot() {
+  document.getElementById("login-form").style.display="none";
+  document.getElementById("register-form").style.display="none";
+  document.getElementById("forgot-form").style.display="block";
+  document.getElementById("form-title").innerText="Forgot Password";
+}
+
+// Register user (send to sheet)
+function registerUser() {
+  const data = {
+    action: "register",
+    surname: document.getElementById("reg-surname").value.trim(),
+    name: document.getElementById("reg-name").value.trim(),
+    username: document.getElementById("reg-username").value.trim(),
+    phone: document.getElementById("reg-phone").value.trim(),
+    email: document.getElementById("reg-email").value.trim(),
+    password: document.getElementById("reg-password").value
+  };
+
+  fetch(SCRIPT_URL, {
+    method: "POST",
+    body: JSON.stringify(data),
+    headers: { "Content-Type": "application/json" }
+  })
+  .then(res => res.json())
+  .then(res => {
+    if (res.status === "success") {
+      alert("✅ " + res.message);
+      showLogin();
+    } else {
+      alert("❌ " + res.message);
+    }
+  })
+  .catch(err => alert("⚠️ Network error: " + err.message));
+}
+
+// Login user (check in sheet)
+function loginUser() {
+  const data = {
+    action: "login",
+    emailOrUsername: document.getElementById("login-email").value.trim(),
+    password: document.getElementById("login-password").value
+  };
+
+  fetch(SCRIPT_URL, {
+    method: "POST",
+    body: JSON.stringify(data),
+    headers: { "Content-Type": "application/json" }
+  })
+  .then(res => res.json())
+  .then(res => {
+    if (res.status === "success") {
+      sessionStorage.setItem("loggedInUser", JSON.stringify(res.user));
+      alert("✅ Login successful!");
+      window.location.href = "https://skillburst86.blogspot.com/"; 
+    } else {
+      alert("❌ " + res.message);
+    }
+  })
+  .catch(err => alert("⚠️ Network error: " + err.message));
+}
+
+// Forgot password (optional: call backend)
+function forgotPassword() {
+  const email = document.getElementById("forgot-email").value.trim();
+  if (!email) {
+    alert("⚠️ Please enter your email.");
+    return;
+  }
+
+  fetch("https://script.google.com/macros/s/AKfycbxrYlvvFL1iAD2_v6vjGQIwS4WUmPfyVGfxebxGrPsy6sWI2wygNOX79r_ySwuS/exec", {
+    method: "POST",
+    body: JSON.stringify({ action: "forgot", email: email }),
+    headers: { "Content-Type": "application/json" }
+  })
+  .then(response => response.json())
+  .then(data => {
+    if (data.status === "success") {
+      alert("✅ " + data.message);
+    } else {
+      alert("⚠️ " + data.message);
+    }
+  })
+  .catch(err => {
+    console.error(err);
+    alert("⚠️ Something went wrong. Try again later.");
+  });
+}
+
+</script>
+</body>
+</html>
